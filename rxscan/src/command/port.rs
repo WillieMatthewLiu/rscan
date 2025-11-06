@@ -11,7 +11,7 @@
 
 use clap::Args;
 use tracing::*;
-use anyhow::Result;
+use anyhow::{Ok, Result};
 
 #[derive(Args, Debug)]
 pub struct PortArgs {
@@ -21,6 +21,11 @@ pub struct PortArgs {
     /// 端口范围
     #[arg(short, long, default_value = "1-65535")]
     pub ports: String,
+
+    // 设置用户交互
+    // 如: rxscan port 192.168.1.1 --interactive ，此时interactive会设置为true
+    #[arg(short, long, action = clap::ArgAction::SetTrue)]
+    interactive: bool,
 }
 
 pub async fn execute(args: &PortArgs) -> Result<()> {
@@ -37,7 +42,9 @@ pub async fn execute(args: &PortArgs) -> Result<()> {
     
     // 实际的扫描逻辑将在这里实现
     // 比如：多线程扫描、端口状态检测等
-    
+      if args.interactive {
+        run_interactive().await?;
+    }
     info!("端口扫描完成");
     Ok(())
 }
@@ -69,6 +76,12 @@ fn parse_ports(ports_str: &str) -> Result<Vec<u16>> {
     Ok(ports)
 }
 
+/// 扫描完成后用户交互式操作
+async fn run_interactive() -> Result<()> {
+    loop {
+        todo!()
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;

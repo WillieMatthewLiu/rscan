@@ -1,8 +1,8 @@
 [workspace]
 members = [
-    "rscan",
+    "rxscan",
 ]
-default-members = ["rscan"]
+default-members = ["rxscan"]
 resolver = "2"
 
 [workspace.dependencies]

@@ -13,7 +13,7 @@ use anyhow::{Context, Result};
 use time::{format_description, UtcOffset};
 use tracing_log::LogTracer;
 use tracing_subscriber::fmt::time::OffsetTime;
-use tracing_subscriber::{EnvFilter, Layer};
+use tracing_subscriber::EnvFilter;
 use tracing_subscriber::layer::SubscriberExt;  
 use tracing_subscriber::util::SubscriberInitExt;  
 

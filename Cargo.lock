@@ -851,6 +851,10 @@ dependencies = [
  "clap",
  "console",
  "console-subscriber",
+ "rxscan-core",
+ "rxscan-port",
+ "rxscan-sys",
+ "rxscan-web",
  "serde",
  "serde_json",
  "time",
@@ -859,6 +863,22 @@ dependencies = [
  "tracing-log",
  "tracing-subscriber",
 ]
+
+[[package]]
+name = "rxscan-core"
+version = "0.1.0"
+
+[[package]]
+name = "rxscan-port"
+version = "0.1.0"
+
+[[package]]
+name = "rxscan-sys"
+version = "0.1.0"
+
+[[package]]
+name = "rxscan-web"
+version = "0.1.0"
 
 [[package]]
 name = "ryu"

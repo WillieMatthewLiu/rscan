@@ -1,10 +1,24 @@
+//! 作者: 拖延蟹@B1tf0rce
+//! 创建日期: 2025-11-06
+//! 最后修改: 2025-11-06
+//! 版本: 1.0.1
+//! 
+//! 修改记录:
+//! - 2025-11-06: 初始化代码
+//!
+//! 描述: 
+//! 这是一个Rust编写的插件化单机扫描工具，参考了FScan等知名开源项目
+//! 支持端口扫描、Web扫描、系统信息扫描等功能。
+
 mod logging;
 mod global;
+mod command;
 
-use clap::{Parser, Subcommand, Args};
+use clap::Parser;
 use tracing::*;
 use anyhow::Result;
 
+use crate::command::Commands;
 use crate::{global::{SCAN_CONTEXT, ScanContext}, logging::init_logging};
 
 #[derive(Parser, Debug)]
@@ -22,48 +36,6 @@ pub struct Cli{
     
     #[command(subcommand)]
     command: Commands,
-}
-
-#[derive(Subcommand, Debug)]
-pub enum Commands{
-    // 端口扫描
-    Port(PortArgs),
-    // web扫描
-    Web(WebArgs),
-    // 系统扫描
-    Sys(SysArgs),
-    // 系统帮助
-    Help(HelpArgs),
-
-}
-
-/// 端口扫描的参数
-#[derive(Args, Debug)]
-pub struct PortArgs{
-    // 目标主机或者网段
-    target: String,
-        
-    // 端口范围
-    #[arg(short, long, default_value = "1-65535")]
-    ports: String,
-}
-
-/// Web扫描的参数
-#[derive(Args, Debug)]
-pub struct WebArgs{
-    
-}
-
-/// 主机信息扫描的参数
-#[derive(Args, Debug)]
-pub struct SysArgs{
-    
-}
-
-/// 工具帮助信息的参数
-#[derive(Args, Debug)]
-pub struct HelpArgs{
-    
 }
 
 /// 初始扫描的全局变量
@@ -107,27 +79,7 @@ async fn _main()-> Result<()> {
     SCAN_CONTEXT.set(scan_context).expect("初始化扫描全局变量失败");
 
     // 匹配命令执行
-    match &scan_cli.command {
-        Commands::Port(_args) => {
-            info!("开始端口扫描: target={}, ports={}", _args.target, _args.ports);
-            Ok(())
-        },
-        Commands::Web(_args) => {
-            info!("开始Web扫描");
-            Ok(())
-        },
-        Commands::Sys(_args) => {
-            info!("开始主机信息扫描");
-            Ok(())
-        },
-        Commands::Help(_args) => {
-            Ok(())
-        },
-        _ => {
-            // 确保有返回值
-            Ok(())
-        },
-    }
+    scan_cli.command.execute().await
 }
 
 #[tokio::main]

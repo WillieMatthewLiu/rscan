@@ -1,3 +1,14 @@
+//! 作者: 拖延蟹@B1tf0rce
+//! 创建日期: 2025-11-06
+//! 最后修改: 2025-11-06
+//! 版本: 1.0.1
+//! 
+//! 修改记录:
+//! - 2025-11-06: 初始化代码
+//!
+//! 描述: 
+//! 日志处理的通用方法
+
 use anyhow::{Context, Result};
 use time::{format_description, UtcOffset};
 use tracing_log::LogTracer;

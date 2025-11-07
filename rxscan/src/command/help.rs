@@ -26,14 +26,14 @@ pub async fn execute(args: &HelpArgs) -> Result<()> {
     println!("==================");
     println!();
     println!("可用命令:");
-    println!("  port <目标>    - 端口扫描");
-    println!("  web            - Web应用扫描");
-    println!("  sys <目标>     - 系统信息扫描");
+    println!("  port <IPs>    - 端口扫描");
+    println!("  web <URL>     - Web应用扫描");
+    println!("  sys <IPs>     - 系统信息扫描");
     println!("  help [命令]    - 显示帮助信息");
     println!();
     println!("示例:");
     println!("  rxscan port 192.168.1.1 -p 80,443,8080");
-    println!("  rxscan web --url https://example.com");
+    println!("  rxscan web https://example.com");
     println!("  rxscan sys 192.168.1.1 --scan-type full");
     println!();
     

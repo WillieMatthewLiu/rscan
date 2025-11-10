@@ -69,6 +69,18 @@ impl std::str::FromStr for Operator {
     }
 }
 
+/// 实现标准输出的展示
+impl std::fmt::Display for Operator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Operator::NotEqual => write!(f, "!="),
+            Operator::Equal => write!(f, "="),
+            Operator::RegexEqual => write!(f, "~="),
+            Operator::SuperEqual => write!(f, "=="),
+        }
+    }
+}
+
 /// 参数结构体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Param {
@@ -109,6 +121,28 @@ impl Param{
             value,
             operator,
         })
+    }
+
+    fn matches(&self, banner: &Banner) -> bool {
+        let field_value = match banner.get_field(&self.keyword) {
+            Some(v) => v,
+            None => return false,
+        };
+        
+        match self.operator {
+            Operator::NotEqual => !field_value.contains(&self.value),
+            Operator::Equal => field_value.contains(&self.value),
+            Operator::RegexEqual => {
+                Regex::new(&self.value)
+                    .map(|re| re.is_match(field_value))
+                    .unwrap_or(false)
+            }
+            Operator::SuperEqual => field_value == self.value,
+        }
+    }
+    
+    fn to_string(&self) -> String {
+        format!("{}{}\"{}\"", self.keyword, self.operator, self.value)
     }
 }
 

@@ -15,11 +15,10 @@ use anyhow::Result;
 
 #[derive(Args, Debug)]
 pub struct WebArgs {
-    /// 目标URL
-    #[arg(short, long)]
-    pub url: Option<String>,
+    // 目标URL
+    pub url: String,
     
-    /// 扫描深度
+    // 扫描深度
     #[arg(short, long, default_value = "3")]
     pub depth: u32,
 }
@@ -29,11 +28,7 @@ pub async fn execute(args: &WebArgs) -> Result<()> {
     
     println!("开始Web扫描...");
     
-    if let Some(url) = &args.url {
-        println!("目标URL: {}", url);
-    } else {
-        println!("未指定URL，将使用其他方式获取目标");
-    }
+    println!("目标URL: {}", args.url);
     
     println!("扫描深度: {}", args.depth);
     

@@ -29,16 +29,15 @@ pub async fn init_logging() -> Result<()> {
     let formatting_layer = tracing_subscriber::fmt::layer()
         .compact()  // 紧凑格式更适合命令行
         .with_ansi(true)  // 命令行支持颜色
-         // 隐藏目标信息，更简洁
         .with_timer(OffsetTime::new(
             offset,
             format_description::parse("[hour]:[minute]:[second]")
                 .context("Failed to parse time format")?,
         ))
-        .with_file(true)             // 显示文件名
-        .with_line_number(true)      // 显示行号
-        .with_thread_ids(true)
-        .with_target(false);       // 显示线程ID
+        .with_file(false)             // 显示文件名
+        .with_line_number(false)      // 显示行号
+        .with_thread_ids(true)       // 显示线程ID
+        .with_target(false);   // 显示依赖库信息
 
     tracing_subscriber::registry()
         .with(formatting_layer)

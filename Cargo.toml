@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "rxscan", "rxscan-core", "rxscan-port", "rxscan-sys", "rxscan-web",
+    "rxscan", "rxscan-core", "rxscan-port", "rxscan-sys", "rxscan-vuls", "rxscan-web",
 ]
 default-members = ["rxscan"]
 resolver = "2"

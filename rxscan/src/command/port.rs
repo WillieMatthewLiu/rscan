@@ -15,10 +15,10 @@ use anyhow::{Ok, Result};
 
 #[derive(Args, Debug)]
 pub struct PortArgs {
-    /// 目标主机或者网段
+    // 目标主机或者网段
     pub target: String,
         
-    /// 端口范围
+    // 端口范围
     #[arg(short, long, default_value = "1-65535")]
     pub ports: String,
 

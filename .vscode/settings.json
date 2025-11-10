@@ -111,5 +111,19 @@
             "arguments": [],
             "envVars": []
         }
-    ]
+    ],
+    "rust-analyzer.check.overrideCommand": [
+        "cargo",
+        "check",
+        "--workspace",
+        "--message-format=json"
+    ],
+    "rust-analyzer.cargo.buildScripts.enable": true,
+    "rust-analyzer.cargo.features": "all",
+     "rust-analyzer.workspace.symbol.search.scope": "workspace",
+    "rust-analyzer.check.command": "cargo check --workspace",
+    "rust-analyzer.cargo.allTargets": true,
+    "rust-analyzer.cargo.extraEnv": {
+        "CARGO_PROFILE_RUST_ANALYZER_INHERITS": "dev"
+    }
 }

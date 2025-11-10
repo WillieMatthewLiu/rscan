@@ -889,6 +889,10 @@ name = "rxscan-sys"
 version = "0.1.0"
 
 [[package]]
+name = "rxscan-vuls"
+version = "0.1.0"
+
+[[package]]
 name = "rxscan-web"
 version = "0.1.0"
 dependencies = [

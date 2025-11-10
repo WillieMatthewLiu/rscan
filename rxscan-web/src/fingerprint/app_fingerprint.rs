@@ -47,7 +47,7 @@ impl std::fmt::Display for AppFingerError {
 impl std::error::Error for AppFingerError {}
 
 /// 操作符枚举
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 enum Operator {
     NotEqual,    // !=
     Equal,       // =
@@ -70,7 +70,7 @@ impl std::str::FromStr for Operator {
 }
 
 /// 参数结构体
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct Param {
     keyword: String,
     value: String,
@@ -96,7 +96,7 @@ impl Param{
         let operator = Operator::from_str(operator_str)?;
         
         // 处理转义引号
-        let value = value_raw.replace(r"\[quota\]", r#"\""#);
+        let value = value_raw.replace(r"\[quota\]", r#"""#);
 
         // 如果是正则表达式，验证其合法性
         if operator == Operator::RegexEqual {

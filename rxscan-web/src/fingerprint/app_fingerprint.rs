@@ -35,7 +35,7 @@ pub struct AppFingerError {
 
 /// 实现对象的构建函数
 impl AppFingerError {
-    fn new(msg: &str) -> Self {
+    pub fn new(msg: &str) -> Self {
         Self {
             message: msg.to_string(),
         }
@@ -164,26 +164,23 @@ pub struct Expression {
 
 impl Expression {
     fn new(expr: &str) -> Result<Self, AppFingerError> {
-        let original_expr = expr.to_string();
-        let mut expr = expr.trim().to_string();
+         let value = expr.to_string();
+        let mut expr_trimmed = expr.trim().to_string();
         
         // 处理转义引号
-        expr = expr.replace(r#"\""#, r"\[quota\]");
+        expr_trimmed = expr_trimmed.replace(r#"\""#, r"\[quota\]");
         
         // 字符验证
-        Self::validate_chars(&expr)?;
+        Self::validate_chars(&expr_trimmed)?;
         
         // 提取参数
-        let param_re = Regex::new(r#"([a-zA-Z0-9]+)\s*(!=|=|~=|==)\s*"([^"\n]+)""#)
-            .map_err(|e| AppFingerError::new(&format!("Regex error: {}", e)))?;
+        let mut param_slice = Vec::new();  // 对应Go的paramSlice
+        let mut logical_expr = expr_trimmed.clone();
         
-        let mut params = Vec::new();
-        let mut logical_expr = expr.clone();
-        
-        for (i, cap) in param_re.captures_iter(&expr).enumerate() {
+        for (i, cap) in PARAM_REGEX.captures_iter(&expr_trimmed).enumerate() {
             let full_match = cap.get(0).unwrap().as_str();
             let param = Param::new(full_match)?;
-            params.push(param);
+            param_slice.push(param);
             
             let placeholder = format!("${{{}}}", i + 1);
             logical_expr = logical_expr.replacen(full_match, &placeholder, 1);
@@ -193,20 +190,18 @@ impl Expression {
         Self::validate_syntax(&logical_expr)?;
         
         Ok(Expression {
-            params,
-            original_expr,
-            logical_expr,
+            param_slice,    // 字段名改为param_slice
+            value,          // 字段名改为value
+            expr: logical_expr,  // 字段名改为expr
         })
     }
     
+    /// 验证字符串
     fn validate_chars(expr: &str) -> Result<(), AppFingerError> {
-        let param_re = Regex::new(r#"([a-zA-Z0-9]+)\s*(!=|=|~=|==)\s*"([^"\n]+)""#)
-            .map_err(|e| AppFingerError::new(&format!("Regex error: {}", e)))?;
-        
         let mut test_expr = expr.to_string();
         
         // 移除所有参数
-        for cap in param_re.captures_iter(expr) {
+        for cap in PARAM_REGEX.captures_iter(expr) {
             let full_match = cap.get(0).unwrap().as_str();
             test_expr = test_expr.replace(full_match, "");
         }
@@ -216,12 +211,13 @@ impl Expression {
         
         if !test_expr.is_empty() {
             let unknown_chars = test_expr.replace(r"\[quota\]", r#"\""#);
-            return Err(AppFingerError::new(&format!("Unknown characters: {}", unknown_chars)));
+            return Err(AppFingerError::new(&format!("未知字符串: {}", unknown_chars)));
         }
         
         Ok(())
     }
     
+    /// 验证表达式语法
     fn validate_syntax(expr: &str) -> Result<(), AppFingerError> {
         let placeholder_re = Regex::new(r"\$\{\d+\}").unwrap();
         let test_expr = placeholder_re.replace_all(expr, "true").to_string();
@@ -232,9 +228,9 @@ impl Expression {
     }
     
     fn matches(&self, banner: &Banner) -> bool {
-        let mut expr = self.logical_expr.clone();
+        let mut expr = self.expr.clone();
         
-        for (i, param) in self.params.iter().enumerate() {
+        for (i, param) in self.param_slice.iter().enumerate() {
             let placeholder = format!("${{{}}}", i + 1);
             let result = param.matches(banner);
             expr = expr.replace(&placeholder, &result.to_string());
@@ -337,19 +333,19 @@ impl Expression {
     fn split(&self) -> Vec<String> {
         // 简化的表达式分割实现
         // 实际实现可能需要更复杂的解析逻辑
-        vec![self.original_expr.clone()]
+        vec![self.expr.clone()]
     }
 }
 
 // 指纹结构体
 #[derive(Debug, Clone)]
-struct FingerPrint {
+pub struct FingerPrint {
     product_name: String,
     expression: Expression,
 }
 
 impl FingerPrint {
-    fn new(product_name: &str, expression: &str) -> Result<Self, AppFingerError> {
+    pub fn new(product_name: &str, expression: &str) -> Result<Self, AppFingerError> {
         let expr = Expression::new(expression)?;
         
         Ok(FingerPrint {
@@ -358,7 +354,7 @@ impl FingerPrint {
         })
     }
     
-    fn matches(&self, banner: &Banner) -> Option<String> {
+    pub fn matches(&self, banner: &Banner) -> Option<String> {
         if self.expression.matches(banner) {
             Some(self.product_name.clone())
         } else {

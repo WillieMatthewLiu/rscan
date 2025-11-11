@@ -11,13 +11,16 @@ anyhow.workspace=true
 tracing.workspace=true
 tracing-subscriber.workspace=true
 tracing-log.workspace=true
+tracing-appender.workspace=true
 console = "0.16.1"
 console-subscriber = "0.5.0"
 serde.workspace=true
 serde_json.workspace=true
+
 rxscan-core={ path = "../rxscan-core"}
 rxscan-port={ path = "../rxscan-port"}
 rxscan-sys={ path = "../rxscan-sys"}
 rxscan-web={ path = "../rxscan-web"}
+
 
 

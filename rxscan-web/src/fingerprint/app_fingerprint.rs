@@ -8,6 +8,12 @@
 //!
 //! 描述: 
 //! 创建APP指纹库
+//! APPFingerPrint<--->product_name: String
+//!                    expression: Expression<--->keyword: String
+//!                                               value: String
+//!                                               operator: Operator<---> enum(!=,=,~=,==)
+
+
 use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 use once_cell::sync::Lazy;
@@ -102,14 +108,11 @@ impl Param{
         // 验证关键字
         if !VALID_KEYWORDS_LOWER.contains(&keyword.to_lowercase()) {
             return Err(AppFingerError::new(&format!("未知的HTTP Banner关键字: {}", keyword)));
-        }
-        
+        }        
         // 字符串操作符转枚举
-        let operator = Operator::from_str(operator_str)?;
-        
+        let operator = Operator::from_str(operator_str)?;        
         // 处理转义引号
         let value = value_raw.replace(r"\[quota\]", r#"""#);
-
         // 如果是正则表达式，验证其合法性
         if operator == Operator::RegexEqual {
             Regex::new(&value)
@@ -117,7 +120,7 @@ impl Param{
         }
         
         Ok(Param {
-             keyword: keyword.to_string(),
+            keyword: keyword.to_string(),
             value,
             operator,
         })
@@ -146,7 +149,6 @@ impl Param{
     }
 }
 
-
 /// 表达式结构体
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Expression {
@@ -158,4 +160,209 @@ pub struct Expression {
     // 示例: value = (body="test" || header="tt") && response="aaaa"
     //       expr  = (${1} || ${2}) && ${3}
     expr: String,
+}
+
+impl Expression {
+    fn new(expr: &str) -> Result<Self, AppFingerError> {
+        let original_expr = expr.to_string();
+        let mut expr = expr.trim().to_string();
+        
+        // 处理转义引号
+        expr = expr.replace(r#"\""#, r"\[quota\]");
+        
+        // 字符验证
+        Self::validate_chars(&expr)?;
+        
+        // 提取参数
+        let param_re = Regex::new(r#"([a-zA-Z0-9]+)\s*(!=|=|~=|==)\s*"([^"\n]+)""#)
+            .map_err(|e| AppFingerError::new(&format!("Regex error: {}", e)))?;
+        
+        let mut params = Vec::new();
+        let mut logical_expr = expr.clone();
+        
+        for (i, cap) in param_re.captures_iter(&expr).enumerate() {
+            let full_match = cap.get(0).unwrap().as_str();
+            let param = Param::new(full_match)?;
+            params.push(param);
+            
+            let placeholder = format!("${{{}}}", i + 1);
+            logical_expr = logical_expr.replacen(full_match, &placeholder, 1);
+        }
+        
+        // 语法验证
+        Self::validate_syntax(&logical_expr)?;
+        
+        Ok(Expression {
+            params,
+            original_expr,
+            logical_expr,
+        })
+    }
+    
+    fn validate_chars(expr: &str) -> Result<(), AppFingerError> {
+        let param_re = Regex::new(r#"([a-zA-Z0-9]+)\s*(!=|=|~=|==)\s*"([^"\n]+)""#)
+            .map_err(|e| AppFingerError::new(&format!("Regex error: {}", e)))?;
+        
+        let mut test_expr = expr.to_string();
+        
+        // 移除所有参数
+        for cap in param_re.captures_iter(expr) {
+            let full_match = cap.get(0).unwrap().as_str();
+            test_expr = test_expr.replace(full_match, "");
+        }
+        
+        // 移除所有逻辑字符和括号
+        test_expr = test_expr.replace(|c: char| matches!(c, '&' | '|' | '(' | ')' | ' '), "");
+        
+        if !test_expr.is_empty() {
+            let unknown_chars = test_expr.replace(r"\[quota\]", r#"\""#);
+            return Err(AppFingerError::new(&format!("Unknown characters: {}", unknown_chars)));
+        }
+        
+        Ok(())
+    }
+    
+    fn validate_syntax(expr: &str) -> Result<(), AppFingerError> {
+        let placeholder_re = Regex::new(r"\$\{\d+\}").unwrap();
+        let test_expr = placeholder_re.replace_all(expr, "true").to_string();
+        
+        Self::parse_bool_expression(&test_expr)
+            .map(|_| ())
+            .map_err(|e| AppFingerError::new(&format!("Syntax error: {} in expression: {}", e, expr)))
+    }
+    
+    fn matches(&self, banner: &Banner) -> bool {
+        let mut expr = self.logical_expr.clone();
+        
+        for (i, param) in self.params.iter().enumerate() {
+            let placeholder = format!("${{{}}}", i + 1);
+            let result = param.matches(banner);
+            expr = expr.replace(&placeholder, &result.to_string());
+        }
+        
+        Self::parse_bool_expression(&expr).unwrap_or(false)
+    }
+    
+    fn parse_bool_expression(expr: &str) -> Result<bool, AppFingerError> {
+        let expr = expr.replace(' ', "");
+        
+        // 验证只有合法字符
+        let valid_chars_re = Regex::new(r"^[truefalse&|()]+$").unwrap();
+        if !valid_chars_re.is_match(&expr) {
+            return Err(AppFingerError::new("Invalid characters in boolean expression"));
+        }
+        
+        Self::eval_bool_expression(&expr)
+    }
+    
+    fn eval_bool_expression(expr: &str) -> Result<bool, AppFingerError> {
+        if expr == "true" {
+            return Ok(true);
+        }
+        if expr == "false" {
+            return Ok(false);
+        }
+        
+        let mut result: Option<bool> = None;
+        let mut current_operator: Option<&str> = None;
+        let mut i = 0;
+        let chars: Vec<char> = expr.chars().collect();
+        let len = chars.len();
+        
+        while i < len {
+            match chars[i] {
+                't' if i + 3 < len && &expr[i..i+4] == "true" => {
+                    let value = true;
+                    result = Some(Self::apply_operator(result, value, current_operator));
+                    current_operator = None;
+                    i += 4;
+                }
+                'f' if i + 4 < len && &expr[i..i+5] == "false" => {
+                    let value = false;
+                    result = Some(Self::apply_operator(result, value, current_operator));
+                    current_operator = None;
+                    i += 5;
+                }
+                '&' if i + 1 < len && chars[i+1] == '&' => {
+                    current_operator = Some("&&");
+                    i += 2;
+                }
+                '|' if i + 1 < len && chars[i+1] == '|' => {
+                    current_operator = Some("||");
+                    i += 2;
+                }
+                '(' => {
+                    let end = Self::find_matching_parenthesis(&expr[i..])? + i;
+                    let sub_expr = &expr[i+1..end];
+                    let value = Self::eval_bool_expression(sub_expr)?;
+                    result = Some(Self::apply_operator(result, value, current_operator));
+                    current_operator = None;
+                    i = end + 1;
+                }
+                ' ' => i += 1, // 跳过空格
+                _ => return Err(AppFingerError::new(&format!("Unexpected character at position {}: {}", i, chars[i]))),
+            }
+        }
+        
+        result.ok_or_else(|| AppFingerError::new("Empty expression"))
+    }
+    
+    fn apply_operator(current: Option<bool>, value: bool, operator: Option<&str>) -> bool {
+        match (current, operator) {
+            (None, _) => value, // 第一个值
+            (Some(cur), Some("&&")) => cur && value,
+            (Some(cur), Some("||")) => cur || value,
+            (Some(cur), None) => cur, // 没有操作符，保持原值
+            _ => false,
+        }
+    }
+    
+    fn find_matching_parenthesis(expr: &str) -> Result<usize, AppFingerError> {
+        let mut balance = 0;
+        for (i, c) in expr.chars().enumerate() {
+            match c {
+                '(' => balance += 1,
+                ')' => {
+                    balance -= 1;
+                    if balance == 0 {
+                        return Ok(i);
+                    }
+                }
+                _ => {}
+            }
+        }
+        Err(AppFingerError::new("Unmatched parentheses"))
+    }
+    
+    fn split(&self) -> Vec<String> {
+        // 简化的表达式分割实现
+        // 实际实现可能需要更复杂的解析逻辑
+        vec![self.original_expr.clone()]
+    }
+}
+
+// 指纹结构体
+#[derive(Debug, Clone)]
+struct FingerPrint {
+    product_name: String,
+    expression: Expression,
+}
+
+impl FingerPrint {
+    fn new(product_name: &str, expression: &str) -> Result<Self, AppFingerError> {
+        let expr = Expression::new(expression)?;
+        
+        Ok(FingerPrint {
+            product_name: product_name.to_string(),
+            expression: expr,
+        })
+    }
+    
+    fn matches(&self, banner: &Banner) -> Option<String> {
+        if self.expression.matches(banner) {
+            Some(self.product_name.clone())
+        } else {
+            None
+        }
+    }
 }

@@ -143,10 +143,6 @@ impl Param{
             Operator::SuperEqual => field_value == self.value,
         }
     }
-    
-    fn to_string(&self) -> String {
-        format!("{}{}\"{}\"", self.keyword, self.operator, self.value)
-    }
 }
 
 /// 表达式结构体
@@ -328,12 +324,6 @@ impl Expression {
             }
         }
         Err(AppFingerError::new("Unmatched parentheses"))
-    }
-    
-    fn split(&self) -> Vec<String> {
-        // 简化的表达式分割实现
-        // 实际实现可能需要更复杂的解析逻辑
-        vec![self.expr.clone()]
     }
 }
 

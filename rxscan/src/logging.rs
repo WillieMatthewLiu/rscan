@@ -34,7 +34,7 @@ pub async fn init_logging() -> Result<()> {
         .with_timer(OffsetTime::new(
             offset,
             format_description::parse("[hour]:[minute]:[second]")
-                .context("Failed to parse time format")?,
+                .context("解析时间格式异常")?,
         ))
         .with_file(false)             // 显示文件名
         .with_line_number(false)      // 显示行号
@@ -51,7 +51,7 @@ pub async fn init_logging() -> Result<()> {
         .with_timer(OffsetTime::new(
             offset,
             format_description::parse("[hour]:[minute]:[second]")
-                .context("Failed to parse time format")?,
+                .context("解析时间格式异常")?,
         ))
         .with_file(false)             // 显示文件名
         .with_line_number(false)      // 显示行号
@@ -60,7 +60,7 @@ pub async fn init_logging() -> Result<()> {
 
     tracing_subscriber::registry()
         .with(console_layer)
-        .with(file_appender)
+        .with(file_layer)
         .with(env_filter)
         .init();
 

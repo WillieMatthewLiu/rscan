@@ -12,7 +12,7 @@
 use once_cell::sync::OnceCell;
 use std::collections::HashSet;
 use std::fs::File;
-use std::io::{self, BufRead, BufReader, Read};
+use std::io::{BufRead, BufReader, Read};
 use crate::models::Banner;
 
 pub mod app_fingerprint;
@@ -89,14 +89,14 @@ fn init_database_reader<R: Read>(reader: R) -> Result<FingerPrintDB, AppFingerEr
     }
 }
 
-// 内部添加指纹逻辑
+/// 内部添加指纹逻辑
 fn add_fingerprint(db: &mut FingerPrintDB, product_name: &str, expression: &str) -> Result<(), AppFingerError> {
     let fingerprint = FingerPrint::new(product_name, expression)?;
     db.push(fingerprint);
     Ok(())
 }
 
-// 搜索功能
+/// 搜索功能
 pub fn search(banner: &Banner) -> Vec<String> {
     GLOBAL_FINGERPRINTS.get()
         .map(|db| {
@@ -120,3 +120,13 @@ pub fn search(banner: &Banner) -> Vec<String> {
         })
 }
 
+
+/// 状态查询
+pub fn is_initialized() -> bool {
+    GLOBAL_FINGERPRINTS.get().is_some()
+}
+
+/// 指纹库大小
+pub fn get_fingerprint_count() -> usize {
+    GLOBAL_FINGERPRINTS.get().map(|db| db.len()).unwrap_or(0)
+}

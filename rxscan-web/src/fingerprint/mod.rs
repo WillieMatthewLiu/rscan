@@ -13,6 +13,9 @@ use once_cell::sync::OnceCell;
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
+use tracing::*;
+
+
 use crate::models::Banner;
 
 pub mod app_fingerprint;
@@ -26,12 +29,12 @@ pub static GLOBAL_FINGERPRINTS: OnceCell<FingerPrintDB> = OnceCell::new();
 // 公共API - 使用完整路径
 pub fn init_database_with_path(path: &std::path::Path) -> Result<(), AppFingerError> {
     let file = File::open(path)
-        .map_err(|e| AppFingerError::new(&format!("Failed to open file {}: {}", path.display(), e)))?;
+        .map_err(|e| AppFingerError::new(&format!("为找到指纹库文件 {}: {}", path.display(), e)))?;
     
     let db = init_database_reader(BufReader::new(file))?;
     
     GLOBAL_FINGERPRINTS.set(db)
-        .map_err(|_| AppFingerError::new("Database already initialized"))
+        .map_err(|_| AppFingerError::new("全局APP指纹库已经加载"))
 }
 
 // 公共API - 从字符串内容初始化（用于测试）
@@ -39,7 +42,7 @@ pub fn init_database_from_str(content: &str) -> Result<(), AppFingerError> {
     let db = init_database_reader(content.as_bytes())?;
     
     GLOBAL_FINGERPRINTS.set(db)
-        .map_err(|_| AppFingerError::new("Database already initialized"))
+        .map_err(|_| AppFingerError::new("全局APP指纹库已经加载"))
 }
 
 // 内部初始化逻辑
@@ -70,7 +73,7 @@ fn init_database_reader<R: Read>(reader: R) -> Result<FingerPrintDB, AppFingerEr
         match add_fingerprint(&mut db, parts[0], parts[1]) {
             Ok(_) => success_count += 1,
             Err(e) => {
-                eprintln!("Warning: Failed to parse fingerprint at line {}: {}", line_num + 1, e);
+                warn!("解析APP指纹库文件异常，异常行号： {}，异常内容: {}", line_num + 1, e);
                 if line_num > 0 {
                     last_error = Some(e);
                 }

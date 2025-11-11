@@ -26,12 +26,12 @@ pub struct WebArgs {
 }
 
 pub async fn execute(args: &WebArgs) -> Result<()> {
-    println!("开始Web扫描...");
+    info!("开始Web扫描...");
     // 1. 初始化APP指纹库
     let fp_path = std::env::current_dir()?.join("dict\\fingerprints.txt");
     init_database_with_path(&fp_path)?;
 
-    
+
     println!("指纹库大小: {}", get_fingerprint_count());
 
 

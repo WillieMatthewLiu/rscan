@@ -47,7 +47,8 @@ pub async fn init_logging() -> Result<()> {
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
     let file_layer = tracing_subscriber::fmt::layer()
         .with_writer(non_blocking)
-        .with_ansi(true)  // 命令行支持颜色
+        .with_ansi(false)  // 文件不支持颜色
+        .compact()
         .with_timer(OffsetTime::new(
             offset,
             format_description::parse("[hour]:[minute]:[second]")

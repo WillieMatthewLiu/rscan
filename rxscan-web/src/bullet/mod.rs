@@ -111,11 +111,11 @@ fn parse_fingerprint_line(
     product_name: &str,
     expression: &str,
 ) -> Result<FingerPrint, AppFingerError> {
-    let product_id = line_num as i32;
     // FingerPrint::new(&product_id, product_name, expression)
     //     .map_err(|e| AppFingerError::new(&format!("在[{}]行解析异常: {}", line_num, e)))
-    FingerPrint::new(&product_id, product_name, expression)
+    FingerPrint::new(&line_num, product_name, expression)
 }
+
 /// 搜索功能
 pub fn search(banner: &Banner) -> Vec<String> {
     GLOBAL_FINGERPRINTS

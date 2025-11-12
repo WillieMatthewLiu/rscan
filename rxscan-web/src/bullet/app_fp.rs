@@ -163,7 +163,7 @@ impl Param{
 #[derive(Debug, Clone)]
 pub struct FingerPrint {
     // 产品字典表行号
-    product_id: i32,
+    product_id: usize,
     // 产品名称
     product_name: String,
     // 表达式参数切片
@@ -184,7 +184,7 @@ impl std::fmt::Display for FingerPrint {
 }
 
 impl FingerPrint {
-    pub fn new(product_id: &i32, product_name: &str, expression: &str) -> Result<Self, AppFingerError> {
+    pub fn new(product_id: &usize, product_name: &str, expression: &str) -> Result<Self, AppFingerError> {
         let value = expression.to_string();
         let mut expr_trimmed = expression.trim().to_string();
         

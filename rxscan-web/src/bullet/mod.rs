@@ -125,5 +125,14 @@ pub fn is_initialized() -> bool {
 
 /// 指纹库大小
 pub fn get_fingerprint_count() -> usize {
-    GLOBAL_FINGERPRINTS.get().map(|db| db.len()).unwrap_or(0)
+    // let global_fp_size = GLOBAL_FINGERPRINTS.get().map(|db| db.len()).unwrap_or(0);
+    // if global_fp_size > 0{
+    //     warn!(format!("{}",GLOBAL_FINGERPRINTS.get(0)));
+    // }
+    if let Some(first_fp) = GLOBAL_FINGERPRINTS.get().and_then(|db| db.first()) {
+        debug!("First fingerprint: {}", first_fp);
+    } else {
+        debug!("No fingerprints available");
+    }
+    GLOBAL_FINGERPRINTS.get().map(|db| db.len()).unwrap_or(0)    
 }

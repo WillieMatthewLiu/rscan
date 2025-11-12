@@ -19,7 +19,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 use tracing_appender::non_blocking::WorkerGuard;
 use once_cell::sync::OnceCell;
 
-static _FILE_GUARD: once_cell::sync::OnceCell<WorkerGuard> = once_cell::sync::OnceCell::new();
+static _FILE_GUARD: OnceCell<WorkerGuard> = OnceCell::new();
 
 pub async fn init_logging() -> Result<()> {
     // 桥接 log crate（让依赖库的 log 调用也能被 tracing 捕获）

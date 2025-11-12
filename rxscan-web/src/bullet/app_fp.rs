@@ -15,9 +15,12 @@
 
 
 use std::str::FromStr;
+use std::error::Error;
 use serde::{Deserialize, Serialize};
 use once_cell::sync::Lazy;
 use regex::Regex;
+use tracing::*;
+
 use crate::models::{Banner, VALID_KEYWORDS_LOWER};
 
 /// 初始化正则表达式
@@ -50,7 +53,7 @@ impl std::fmt::Display for AppFingerError {
 }
 
 /// 实现标准的Error Trait
-impl std::error::Error for AppFingerError {}
+impl Error for AppFingerError {}
 
 /// 操作符枚举
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -62,7 +65,7 @@ enum Operator {
 }
 
 /// 将字符串转为操作符枚举
-impl std::str::FromStr for Operator {
+impl FromStr for Operator {
     type Err = AppFingerError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -87,12 +90,23 @@ impl std::fmt::Display for Operator {
     }
 }
 
-/// 参数结构体
+/// 应用特证判断的表达式对象
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Param {
     keyword: String,
     value: String,
     operator: Operator,
+}
+
+impl std::fmt::Display for Param {
+     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.operator {
+            Operator::NotEqual => write!(f, "Param({},{},!=)",self.keyword,self.value),
+            Operator::Equal => write!(f, "Param({},{},=)",self.keyword,self.value),
+            Operator::RegexEqual => write!(f, "Param({},{},~=)",self.keyword,self.value),
+            Operator::SuperEqual => write!(f, "Param({},{},==)",self.keyword,self.value),
+        }
+     }    
 }
 
 /// Param构建
@@ -145,7 +159,7 @@ impl Param{
     }
 }
 
-// 指纹结构体
+// 对象指纹结构体  包含APP名称和指纹表达式
 #[derive(Debug, Clone)]
 pub struct FingerPrint {
     // 产品字典表行号
@@ -162,6 +176,13 @@ pub struct FingerPrint {
     expr: String,
 }
 
+impl std::fmt::Display for FingerPrint {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let vec_string: String = self.param_slice.iter().map(|p| p.to_string()).collect();
+        write!(f,"FingerPrint[{},{},{},{},{}]", self.product_id.to_string(),self.product_name,vec_string,self.value,self.expr)
+    }
+}
+
 impl FingerPrint {
     pub fn new(product_id: &i32, product_name: &str, expression: &str) -> Result<Self, AppFingerError> {
         let value = expression.to_string();
@@ -169,24 +190,26 @@ impl FingerPrint {
         
         // 处理转义引号
         expr_trimmed = expr_trimmed.replace(r#"\""#, r"\[quota\]");
-        
-        // 字符验证
+        // debug!("需要验证的表达式: {}", expr_trimmed);
+        // 验证--表达式
         Self::validate_chars(&expr_trimmed)?;
         
         // 提取参数
-        let mut param_slice = Vec::new();  // 对应Go的paramSlice
+        let mut param_slice = Vec::new(); 
         let mut logical_expr = expr_trimmed.clone();
         
         for (i, cap) in PARAM_REGEX.captures_iter(&expr_trimmed).enumerate() {
             let full_match = cap.get(0).unwrap().as_str();
+            debug!("表达式--第[{}]区，内容: {}", i+1,full_match);
             let param = Param::new(full_match)?;
             param_slice.push(param);
             
             let placeholder = format!("${{{}}}", i + 1);
             logical_expr = logical_expr.replacen(full_match, &placeholder, 1);
         }
-        
-        // 语法验证
+
+        warn!("表达式{} , 逻辑表达式: {}",value, logical_expr);
+        // 验证--语法 
         Self::validate_syntax(&logical_expr)?;
         
         Ok(FingerPrint {
@@ -197,15 +220,6 @@ impl FingerPrint {
             expr: logical_expr,  // 字段名改为expr
         })
     }
-    /// 字符串匹配
-    pub fn matches(&self, banner: &Banner) -> Option<String> {
-        if self.expr_matches(banner) {
-            Some(self.product_name.clone())
-        } else {
-            None
-        }
-    }
-
     /// 验证字符串
     fn validate_chars(expr: &str) -> Result<(), AppFingerError> {
         let mut test_expr = expr.to_string();
@@ -226,7 +240,6 @@ impl FingerPrint {
         
         Ok(())
     }
-    
     /// 验证表达式语法
     fn validate_syntax(expr: &str) -> Result<(), AppFingerError> {
         let placeholder_re = Regex::new(r"\$\{\d+\}").unwrap();
@@ -234,9 +247,18 @@ impl FingerPrint {
         
         Self::parse_bool_expression(&test_expr)
             .map(|_| ())
-            .map_err(|e| AppFingerError::new(&format!("Syntax error: {} in expression: {}", e, expr)))
+            .map_err(|e| AppFingerError::new(&format!("表达式:{} 解析出现错误: {}", expr, e)))
     }
 
+    /// 字符串匹配
+    pub fn matches(&self, banner: &Banner) -> Option<String> {
+        if self.expr_matches(banner) {
+            let match_resutl = format!("{}_{}", self.product_id, &self.product_name);
+            Some(match_resutl.clone())
+        } else {
+            None
+        }
+    }
     fn expr_matches(&self, banner: &Banner) -> bool {
         let mut expr = self.expr.clone();
         
@@ -248,7 +270,6 @@ impl FingerPrint {
         
         Self::parse_bool_expression(&expr).unwrap_or(false)
     }
-    
     fn parse_bool_expression(expr: &str) -> Result<bool, AppFingerError> {
         let expr = expr.replace(' ', "");
         

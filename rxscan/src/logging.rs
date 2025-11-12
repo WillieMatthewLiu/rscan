@@ -28,8 +28,7 @@ pub async fn init_logging() -> Result<()> {
     let offset = UtcOffset::current_local_offset().unwrap_or(UtcOffset::UTC);
     
     //日志过滤
-    let env_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("debug"));
+    let env_filter = EnvFilter::new("info");
 
     // 命令行交互环境专用配置
     let console_layer = tracing_subscriber::fmt::layer()
@@ -37,7 +36,7 @@ pub async fn init_logging() -> Result<()> {
         .with_ansi(true)  // 命令行支持颜色
         .with_timer(OffsetTime::new(
             offset,
-            format_description::parse("[hour]:[minute]:[second]")
+            format_description::parse("[hour repr:24]:[minute]:[second].[subsecond digits:3]")
                 .context("解析时间格式异常")?,
         ))
         .with_file(false)             // 显示文件名
@@ -59,7 +58,7 @@ pub async fn init_logging() -> Result<()> {
         .compact()
         .with_timer(OffsetTime::new(
             offset,
-            format_description::parse("[hour]:[minute]:[second]")
+            format_description::parse("[hour repr:24]:[minute]:[second].[subsecond digits:3]")
                 .context("解析时间格式异常")?,
         ))
         .with_file(false)             // 显示文件名

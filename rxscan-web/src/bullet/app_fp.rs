@@ -31,7 +31,7 @@ static PARAM_REGEX: Lazy<Regex> = Lazy::new(|| {
 
 
 /// 错误类型
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AppFingerError {
     message: String,
 }
@@ -200,7 +200,7 @@ impl FingerPrint {
         
         for (i, cap) in PARAM_REGEX.captures_iter(&expr_trimmed).enumerate() {
             let full_match = cap.get(0).unwrap().as_str();
-            debug!("表达式--第[{}]区，内容: {}", i+1,full_match);
+            trace!("表达式--第[{}]区，内容: {}", i+1,full_match);
             let param = Param::new(full_match)?;
             param_slice.push(param);
             
@@ -208,7 +208,7 @@ impl FingerPrint {
             logical_expr = logical_expr.replacen(full_match, &placeholder, 1);
         }
 
-        warn!("表达式{} , 逻辑表达式: {}",value, logical_expr);
+        debug!("表达式{} , 逻辑表达式: {}",value, logical_expr);
         // 验证--语法 
         Self::validate_syntax(&logical_expr)?;
         

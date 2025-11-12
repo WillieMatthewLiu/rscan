@@ -86,7 +86,7 @@ async fn _main()-> Result<()> {
 async fn main() {
     // 工具主入口
     if let Err(error) = _main().await {
-        error!(?error, "系统主函数初始化异常");
+        error!("系统主函数初始化异常, 异常信息:{}", error);
         std::process::exit(1);
     }
 }

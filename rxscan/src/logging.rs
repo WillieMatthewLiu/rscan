@@ -29,7 +29,7 @@ pub async fn init_logging() -> Result<()> {
     
     //日志过滤
     let env_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("info"));
+        .unwrap_or_else(|_| EnvFilter::new("debug"));
 
     // 命令行交互环境专用配置
     let console_layer = tracing_subscriber::fmt::layer()

@@ -30,14 +30,9 @@ pub async fn execute(args: &WebArgs) -> Result<()> {
     // 1. 初始化APP指纹库
     let fp_path = std::env::current_dir()?.join("dict\\fingerprints.txt");
     init_database_with_path(&fp_path)?;
-
-
-    println!("指纹库大小: {}", get_fingerprint_count());
-
-
-    println!("目标URL: {}", args.url);
-    
-    println!("扫描深度: {}", args.depth);
+    info!("指纹库大小: {}", get_fingerprint_count());
+    info!("目标URL: {}", args.url);
+    info!("扫描深度: {}", args.depth);
     
     // 这里添加实际的Web扫描逻辑
     // 比如：目录扫描、漏洞检测、指纹识别等

@@ -18,28 +18,22 @@ use tracing::*;
 
 use crate::models::Banner;
 
-pub mod app_fingerprint;
+// pub mod app_fingerprint;
+// pub use crate::bullet::app_fingerprint::{AppFingerError, Expression,FingerPrint};
 
-pub use crate::bullet::app_fingerprint::{AppFingerError, Expression,FingerPrint};
+pub mod app_fp;
+pub use crate::bullet::app_fp::{AppFingerError, FingerPrint};
 
 /// 定义指纹库
 type FingerPrintDB = Vec<FingerPrint>;
 pub static GLOBAL_FINGERPRINTS: OnceCell<FingerPrintDB> = OnceCell::new();
 
-// 公共API - 使用完整路径
+/// 公共API - 使用完整路径
 pub fn init_database_with_path(path: &std::path::Path) -> Result<(), AppFingerError> {
     let file = File::open(path)
-        .map_err(|e| AppFingerError::new(&format!("为找到指纹库文件 {}: {}", path.display(), e)))?;
+        .map_err(|e| AppFingerError::new(&format!("未找到指纹库文件 {}: {}", path.display(), e)))?;
     
     let db = init_database_reader(BufReader::new(file))?;
-    
-    GLOBAL_FINGERPRINTS.set(db)
-        .map_err(|_| AppFingerError::new("全局APP指纹库已经加载"))
-}
-
-// 公共API - 从字符串内容初始化（用于测试）
-pub fn init_database_from_str(content: &str) -> Result<(), AppFingerError> {
-    let db = init_database_reader(content.as_bytes())?;
     
     GLOBAL_FINGERPRINTS.set(db)
         .map_err(|_| AppFingerError::new("全局APP指纹库已经加载"))
@@ -70,7 +64,7 @@ fn init_database_reader<R: Read>(reader: R) -> Result<FingerPrintDB, AppFingerEr
             continue;
         }
         
-        match add_fingerprint(&mut db, parts[0], parts[1]) {
+        match add_fingerprint(&mut db, &line_count,parts[0], parts[1]) {
             Ok(_) => success_count += 1,
             Err(e) => {
                 warn!("解析APP指纹库文件异常，异常行号： {}，异常内容: {}", line_num + 1, e);
@@ -93,8 +87,8 @@ fn init_database_reader<R: Read>(reader: R) -> Result<FingerPrintDB, AppFingerEr
 }
 
 /// 内部添加指纹逻辑
-fn add_fingerprint(db: &mut FingerPrintDB, product_name: &str, expression: &str) -> Result<(), AppFingerError> {
-    let fingerprint = FingerPrint::new(product_name, expression)?;
+fn add_fingerprint(db: &mut FingerPrintDB,product_id: &i32, product_name: &str, expression: &str) -> Result<(), AppFingerError> {
+    let fingerprint = FingerPrint::new(product_id,product_name, expression)?;
     db.push(fingerprint);
     Ok(())
 }

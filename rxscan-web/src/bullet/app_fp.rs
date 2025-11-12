@@ -145,9 +145,13 @@ impl Param{
     }
 }
 
-/// 表达式结构体
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Expression {
+// 指纹结构体
+#[derive(Debug, Clone)]
+pub struct FingerPrint {
+    // 产品字典表行号
+    product_id: i32,
+    // 产品名称
+    product_name: String,
     // 表达式参数切片
     param_slice: Vec<Param>,
     // 表达式原文
@@ -158,10 +162,10 @@ pub struct Expression {
     expr: String,
 }
 
-impl Expression {
-    fn new(expr: &str) -> Result<Self, AppFingerError> {
-         let value = expr.to_string();
-        let mut expr_trimmed = expr.trim().to_string();
+impl FingerPrint {
+    pub fn new(product_id: &i32, product_name: &str, expression: &str) -> Result<Self, AppFingerError> {
+        let value = expression.to_string();
+        let mut expr_trimmed = expression.trim().to_string();
         
         // 处理转义引号
         expr_trimmed = expr_trimmed.replace(r#"\""#, r"\[quota\]");
@@ -185,13 +189,23 @@ impl Expression {
         // 语法验证
         Self::validate_syntax(&logical_expr)?;
         
-        Ok(Expression {
+        Ok(FingerPrint {
+            product_id: *product_id,
+            product_name: product_name.to_string(),
             param_slice,    // 字段名改为param_slice
             value,          // 字段名改为value
             expr: logical_expr,  // 字段名改为expr
         })
     }
-    
+    /// 字符串匹配
+    pub fn matches(&self, banner: &Banner) -> Option<String> {
+        if self.expr_matches(banner) {
+            Some(self.product_name.clone())
+        } else {
+            None
+        }
+    }
+
     /// 验证字符串
     fn validate_chars(expr: &str) -> Result<(), AppFingerError> {
         let mut test_expr = expr.to_string();
@@ -222,8 +236,8 @@ impl Expression {
             .map(|_| ())
             .map_err(|e| AppFingerError::new(&format!("Syntax error: {} in expression: {}", e, expr)))
     }
-    
-    fn matches(&self, banner: &Banner) -> bool {
+
+    fn expr_matches(&self, banner: &Banner) -> bool {
         let mut expr = self.expr.clone();
         
         for (i, param) in self.param_slice.iter().enumerate() {
@@ -241,7 +255,7 @@ impl Expression {
         // 验证只有合法字符
         let valid_chars_re = Regex::new(r"^[truefalse&|()]+$").unwrap();
         if !valid_chars_re.is_match(&expr) {
-            return Err(AppFingerError::new("Invalid characters in boolean expression"));
+            return Err(AppFingerError::new(&format!("解析布尔表达式时出错，未知的类型: {}", expr)));
         }
         
         Self::eval_bool_expression(&expr)
@@ -324,31 +338,5 @@ impl Expression {
             }
         }
         Err(AppFingerError::new("Unmatched parentheses"))
-    }
-}
-
-// 指纹结构体
-#[derive(Debug, Clone)]
-pub struct FingerPrint {
-    product_name: String,
-    expression: Expression,
-}
-
-impl FingerPrint {
-    pub fn new(product_name: &str, expression: &str) -> Result<Self, AppFingerError> {
-        let expr = Expression::new(expression)?;
-        
-        Ok(FingerPrint {
-            product_name: product_name.to_string(),
-            expression: expr,
-        })
-    }
-    
-    pub fn matches(&self, banner: &Banner) -> Option<String> {
-        if self.expression.matches(banner) {
-            Some(self.product_name.clone())
-        } else {
-            None
-        }
     }
 }

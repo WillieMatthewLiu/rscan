@@ -14,8 +14,6 @@ use rayon::prelude::*;
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex};
 use tracing::*;
 
 use crate::models::Banner;
@@ -54,53 +52,53 @@ fn init_database_reader<R: Read>(reader: R) -> Result<FingerPrintDB, AppFingerEr
             Ok((line_num + 1, content)) // 行号从1开始
         })
         .collect::<Result<Vec<(usize, String)>, AppFingerError>>()?;
-    // 创建并行用对象
-    let db = Arc::new(Mutex::new(Vec::new()));
-    let error_tracker = Arc::new(Mutex::new(Vec::new()));
-    let success_count = AtomicUsize::new(0);
 
-    // 并行处理 - 使用元组解构
-    lines.par_iter().enumerate().for_each(|(_index, line_num)| {
-        let line = line_num.1.trim();
+    // 使用map-reduce模式，避免频繁加锁
+    let (db, errors): (Vec<_>, Vec<_>) = lines
+        .par_iter()
+        .filter_map(|(line_num, content)| {
+            let line = content.trim();
 
-        // 跳过空行和注释
-        if line.is_empty() || line.starts_with('#') {
-            return;
-        }
-
-        let parts: Vec<&str> = line.splitn(2, '\t').collect();
-        if parts.len() != 2 {
-            let err = AppFingerError::new(&format!("在[{}]行制表符拆分异常: {}", line_num.0, line));
-            error_tracker.lock().unwrap().push(err);
-            return;
-        }
-
-        match parse_fingerprint_line(line_num.0, parts[0], parts[1]) {
-            Ok(fp) => {
-                db.lock().unwrap().push(fp);
-                success_count.fetch_add(1, Ordering::Relaxed);
+            // 跳过空行和注释
+            if line.is_empty() || line.starts_with('#') {
+                return None;
             }
-            Err(e) => {
-                error_tracker.lock().unwrap().push(e);
+
+            // 使用split_once更高效
+            let (product_name, expression) = line.split_once('\t')?;
+
+            match parse_fingerprint_line(*line_num, product_name, expression) {
+                Ok(fp) => {
+                    Some(Ok(fp))
+                }
+                Err(e) => Some(Err(e)),
             }
-        }
-    });
+        })
+        .partition(|result| result.is_ok());
+
+    // 提取结果
+    let db: FingerPrintDB = db.into_iter().filter_map(Result::ok).collect();
+
+    let errors: Vec<AppFingerError> = errors.into_iter().filter_map(Result::err).collect();
 
     let elapsed_time = start_time.elapsed();
+    
     info!("指纹库解析耗时: {}毫秒", elapsed_time.as_millis());
     info!(
         "成功识别加载的指纹有[{}]个",
-        success_count.load(Ordering::Relaxed)
+        db.len()
     );
-    let db = Arc::try_unwrap(db).unwrap().into_inner().unwrap();
-    let errors = Arc::try_unwrap(error_tracker)
-        .unwrap()
-        .into_inner()
-        .unwrap();
 
     if let Some(last_err) = errors.last() {
-        Err(AppFingerError::new(format!("加载过程中错误的指纹个数[{}],最后的错误信息: {}", errors.capacity(), last_err).as_str()))
-    } else if success_count.load(Ordering::Relaxed) == 0 {
+        Err(AppFingerError::new(
+            format!(
+                "加载过程中错误的指纹个数[{}],最后的错误信息: {}",
+                errors.len(),
+                last_err
+            )
+            .as_str(),
+        ))
+    } else if db.len() == 0 {
         Err(AppFingerError::new("未成功识别加载任何应用指纹"))
     } else {
         Ok(db)
@@ -118,7 +116,6 @@ fn parse_fingerprint_line(
     //     .map_err(|e| AppFingerError::new(&format!("在[{}]行解析异常: {}", line_num, e)))
     FingerPrint::new(&product_id, product_name, expression)
 }
-
 /// 搜索功能
 pub fn search(banner: &Banner) -> Vec<String> {
     GLOBAL_FINGERPRINTS

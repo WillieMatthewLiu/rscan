@@ -7,7 +7,7 @@
 //! - 2025-11-10: 初始化代码
 //!
 //! 描述: 
-//! 创建APP指纹库
+//! 创建APP指纹库, 爆破用字典等
 //! 
 use once_cell::sync::OnceCell;
 use std::collections::HashSet;
@@ -20,7 +20,7 @@ use crate::models::Banner;
 
 pub mod app_fingerprint;
 
-pub use crate::fingerprint::app_fingerprint::{AppFingerError, Expression,FingerPrint};
+pub use crate::bullet::app_fingerprint::{AppFingerError, Expression,FingerPrint};
 
 /// 定义指纹库
 type FingerPrintDB = Vec<FingerPrint>;

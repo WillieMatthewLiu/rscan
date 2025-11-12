@@ -13,7 +13,7 @@ use clap::Args;
 use tracing::*;
 use anyhow::Result;
 
-use rxscan_web::fingerprint::{init_database_with_path,get_fingerprint_count};
+use rxscan_web::bullet::{init_database_with_path,get_fingerprint_count};
 
 #[derive(Args, Debug)]
 pub struct WebArgs {

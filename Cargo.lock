@@ -863,6 +863,7 @@ dependencies = [
  "clap",
  "console",
  "console-subscriber",
+ "once_cell",
  "rxscan-core",
  "rxscan-port",
  "rxscan-sys",

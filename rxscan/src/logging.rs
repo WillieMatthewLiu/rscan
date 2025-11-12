@@ -16,6 +16,10 @@ use tracing_subscriber::fmt::time::OffsetTime;
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::layer::SubscriberExt;  
 use tracing_subscriber::util::SubscriberInitExt;  
+use tracing_appender::non_blocking::WorkerGuard;
+use once_cell::sync::OnceCell;
+
+static _FILE_GUARD: once_cell::sync::OnceCell<WorkerGuard> = once_cell::sync::OnceCell::new();
 
 pub async fn init_logging() -> Result<()> {
     // 桥接 log crate（让依赖库的 log 调用也能被 tracing 捕获）
@@ -45,6 +49,10 @@ pub async fn init_logging() -> Result<()> {
     // 文件层（使用非阻塞写入）
     let file_appender = tracing_appender::rolling::daily("logs", "rxscan.log");
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+    
+    // 将guard存储到全局变量中
+    _FILE_GUARD.set(_guard).expect("设置日志输出全局WorkerGuard对象失败!");
+
     let file_layer = tracing_subscriber::fmt::layer()
         .with_writer(non_blocking)
         .with_ansi(false)  // 文件不支持颜色

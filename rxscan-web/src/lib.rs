@@ -1,2 +1,2 @@
-pub mod fingerprint;
+pub mod bullet;
 pub mod models;

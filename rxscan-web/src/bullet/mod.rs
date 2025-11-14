@@ -9,6 +9,11 @@
 //! 描述:
 //! 创建APP指纹库, 爆破用字典等
 
+/// 模块声明
+pub mod app_fp;
+pub use crate::bullet::app_fp::{AppFingerError, FingerPrint};
+
+/// 外部引用
 use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use std::collections::HashSet;
@@ -16,10 +21,8 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
 use tracing::*;
 
+/// 内部引用
 use crate::models::Banner;
-
-pub mod app_fp;
-pub use crate::bullet::app_fp::{AppFingerError, FingerPrint};
 
 /// 定义指纹库
 type FingerPrintDB = Vec<FingerPrint>;
@@ -63,10 +66,8 @@ fn init_database_reader<R: Read>(reader: R) -> Result<FingerPrintDB, AppFingerEr
             if line.is_empty() || line.starts_with('#') {
                 return None;
             }
-
             // 使用split_once更高效
             let (product_name, expression) = line.split_once('\t')?;
-
             match parse_fingerprint_line(*line_num, product_name, expression) {
                 Ok(fp) => {
                     Some(Ok(fp))
@@ -136,7 +137,7 @@ pub fn search(banner: &Banner) -> Vec<String> {
             products
         })
         .unwrap_or_else(|| {
-            eprintln!("Warning: Fingerprint database not initialized. Call init_database() first.");
+            error!("指纹数据库未初始化, 请先初始化指纹仓库");
             Vec::new()
         })
 }

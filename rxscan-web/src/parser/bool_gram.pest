@@ -1,0 +1,33 @@
+// 忽略空白字符
+WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
+
+// 主规则 - 整个表达式
+input = { SOI ~ expression ~ EOI }
+
+// 表达式规则（支持优先级）
+expression = { logical_or }
+
+// 逻辑或（最低优先级）
+logical_or = {
+    logical_and ~ (or_operator ~ logical_and)*
+}
+
+// 逻辑与（中等优先级）
+logical_and = {
+    term ~ (and_operator ~ term)*
+}
+
+// 基本项（最高优先级）
+term = {
+    boolean |
+    "(" ~ expression ~ ")" |
+    not_operator ~ term  // 非运算
+}
+
+// 布尔值
+boolean = { "true" | "false" }
+
+// 操作符定义
+or_operator = { "||" | "or" }
+and_operator = { "&&" | "and" } 
+not_operator = { "!" | "not" }

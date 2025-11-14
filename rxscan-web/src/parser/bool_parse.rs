@@ -5,6 +5,35 @@
 //!
 //! 修改记录:
 //! - 2025-11-14: 布尔表达式解析
+//!    支持类型：
+//!         // 基础表达式
+//!        "true",
+//!        "false",
+//!        
+//!        // 逻辑或运算
+//!        "true || false", 
+//!        "false || false",
+//!        "true || true",
+//!        
+//!        // 逻辑与运算
+//!        "true && false",
+//!        "true && true",
+//!        "false && false",
+//!        
+//!        // 混合运算
+//!        "true || false && true",
+//!        "(true || false) && true",
+//!        "true && false || true",
+//!        
+//!        // 带括号的复杂表达式
+//!        "(true || false) && (true || false)",
+//!        "!(true && false)",
+//!        "not true || false",
+//!       "true && not false",
+
+//!        // 多重嵌套
+//!        "((true || false) && true) || false",
+//!        "!(!true && !false)",
 
 use pest_derive::Parser;
 use pest::Parser;

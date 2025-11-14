@@ -237,8 +237,10 @@ impl FingerPrint {
 
         debug!("表达式{} , 逻辑表达式: {}", value, logical_expr);
         // 验证--语法
-        Self::validate_syntax(&logical_expr)?;
-
+        // Self::validate_syntax(&logical_expr)?;
+        if let Err(ape) = Self::validate_syntax(&logical_expr) {
+            error!("表达式[{}]语法验证错误, 异常信息: {}", value, ape);
+        }
         Ok(FingerPrint {
             product_id: *product_id,
             product_name: product_name.to_string(),
@@ -248,13 +250,13 @@ impl FingerPrint {
         })
     }
     /// 验证表达式的合规性，如果表达式内容都替换了，就代表表达式合规
-    fn validate_expr(expr: &str) -> Result<(), AppFingerError> {
+    fn validate_expr(expr: &str) -> Result<bool, AppFingerError> {
         // 移除所有命中的表达式
         let prune_result = PARAM_REGEX.replace_all(expr, "").to_string();
         // 移除所有逻辑字符和括号
         let result = prune_result.replace(|c: char| matches!(c, '&' | '|' | '(' | ')' | ' '), "");
         match result.trim() {
-            "" => Ok(()),
+            "" => Ok(true),
             _ => {
                 let unknown_chars = expr.to_string().replace(r"\[quota\]", r#"\""#);
                 return Err(AppFingerError::new(&format!(
@@ -265,33 +267,18 @@ impl FingerPrint {
         }
     }
     /// 验证表达式语法
-    fn validate_syntax(expr: &str) -> Result<(), AppFingerError> {
-        // let placeholder_re = Regex::new(r"\$\{\d+\}").unwrap();
-        // let test_expr = placeholder_re.replace_all(expr, "true").to_string();
-
-        // Self::parse_bool_expression(&test_expr)
-        //     .map(|_| ())
-        //     .map_err(|e| AppFingerError::new(&format!("表达式:{} 解析出现错误: {}", expr, e)))
+    fn validate_syntax(expr: &str) -> Result<bool, AppFingerError> {
 
         // 将${n}的表达式全部替换为true
         let bool_expr = SYNTAX_REGEX.replace_all(expr, "true").to_string();
         // 将true和运算符、括号替换成空
         let result = BOOL_SYNTAX_REGEX.replace_all(&bool_expr, "").to_string();
-        // match result.trim() {
-        //     "" => Ok(()),
-        //     _  => Err(AppFingerError::new(&format!(
-        //                         "未知布尔表达式字符串: {}",
-        //                         result
-        //     ))),
-        // }
+        // 验证表达式语法是否有错
         match result.trim() {
             "" => match BooleanEvaluator::eval(&bool_expr) {
-                Ok(true) => Ok(()),
-                Ok(false) => Ok(()),
-                Err(msg) => Err(AppFingerError::new(&format!(
-                    "表达式[{}]的布尔解析异常，异常原因: {}",
-                    expr, msg
-                ))),
+                Ok(true) => Ok(true),
+                Ok(false) => Ok(true),
+                Err(msg) => Err(AppFingerError::new(msg.as_str())),
             },
             _ => Err(AppFingerError::new(&format!(
                 "未知布尔表达式字符串: {}",

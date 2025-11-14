@@ -30,7 +30,6 @@ static PARAM_REGEX: Lazy<Regex> = Lazy::new(|| {
 });
 /// 初始化表达式语法  ${1} || ${2}
 ///         let placeholder_re = Regex::new(r"\$\{\d+\}").unwrap();
-///
 static SYNTAX_REGEX: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"\$\{\d+\}").expect("指纹语法表达式编译失败"));
 
@@ -140,13 +139,13 @@ impl Param {
         // 处理转义引号
         let value = value_raw.replace(r"\[quota\]", r#"""#);
         // 如果是正则表达式，验证其合法性 todo!()
-        // if operator == Operator::RegexEqual {
-        //     Regex::new(&value)
-        //         .map_err(|e| {
-        //             error!("操作符的正则表达式编译失败: {}", e);
-        //             AppFingerError::new(&format!("操作符的正则表达式编译失败: {}", e))
-        //         })?;
-        // }
+        if operator == Operator::RegexEqual {
+            Regex::new(&value)
+                .map_err(|e| {
+                    error!("操作符的正则表达式编译失败: {}", e);
+                    AppFingerError::new(&format!("操作符的正则表达式编译失败: {}", e))
+                })?;
+        }
 
         Ok(Param {
             keyword: keyword.to_string(),
@@ -219,8 +218,7 @@ impl FingerPrint {
         // warn!("处理转义引号后的字符串: {}", expr_trimmed);
         // debug!("需要验证的表达式: {}", expr_trimmed);
         // 验证--表达式
-        Self::validate_expr(&expr_trimmed)?;
-        if let Err(syntax_ape) = Self::validate_expr(&logical_expr) {
+        if let Err(syntax_ape) = Self::validate_expr(&expr_trimmed) {
             error!("表达式[{}]表达式验证错误, 异常信息: {}", value, syntax_ape);
         }
 
@@ -240,7 +238,6 @@ impl FingerPrint {
 
         debug!("表达式{} , 逻辑表达式: {}", value, logical_expr);
         // 验证--语法
-        // Self::validate_syntax(&logical_expr)?;
         if let Err(syntax_ape) = Self::validate_syntax(&logical_expr) {
             error!("表达式[{}]语法验证错误, 异常信息: {}", value, syntax_ape);
         }
@@ -271,7 +268,6 @@ impl FingerPrint {
     }
     /// 验证表达式语法
     fn validate_syntax(expr: &str) -> Result<bool, AppFingerError> {
-
         // 将${n}的表达式全部替换为true
         let bool_expr = SYNTAX_REGEX.replace_all(expr, "true").to_string();
         // 将true和运算符、括号替换成空
@@ -307,7 +303,6 @@ impl FingerPrint {
             let result = param.matches(banner);
             expr = expr.replace(&placeholder, &result.to_string());
         }
-        // Self::parse_bool_expression(&expr).unwrap_or(false)
         match BooleanEvaluator::eval(&expr) {
                 Ok(true) => true,
                 Ok(false) => false,

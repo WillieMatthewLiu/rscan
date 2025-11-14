@@ -220,6 +220,9 @@ impl FingerPrint {
         // debug!("需要验证的表达式: {}", expr_trimmed);
         // 验证--表达式
         Self::validate_expr(&expr_trimmed)?;
+        if let Err(syntax_ape) = Self::validate_expr(&logical_expr) {
+            error!("表达式[{}]表达式验证错误, 异常信息: {}", value, syntax_ape);
+        }
 
         // 提取参数
         let mut param_slice = Vec::new();
@@ -238,8 +241,8 @@ impl FingerPrint {
         debug!("表达式{} , 逻辑表达式: {}", value, logical_expr);
         // 验证--语法
         // Self::validate_syntax(&logical_expr)?;
-        if let Err(ape) = Self::validate_syntax(&logical_expr) {
-            error!("表达式[{}]语法验证错误, 异常信息: {}", value, ape);
+        if let Err(syntax_ape) = Self::validate_syntax(&logical_expr) {
+            error!("表达式[{}]语法验证错误, 异常信息: {}", value, syntax_ape);
         }
         Ok(FingerPrint {
             product_id: *product_id,

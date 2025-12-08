@@ -4,7 +4,7 @@
 //! 版本: 1.0.1
 //!
 //! 修改记录:
-//! - 2025-11-14: 公共模块
+//! - 2025-11-14: 异步任务资源池
 
-pub mod common;
-pub mod utils;
+mod async_task;
+pub use crate::common::async_task::{AsyncTaskPool, TaskPoolConfig};
